@@ -1,4 +1,4 @@
-# 🔗 Question 3: Distributed URL Shortener (Bitly)
+# 🔗 Question 3: URL Shortener (Bitly)
 
 **Subject**: System Design | **Subject Code**: TCS-504  
 **Author**: Anubhav Singh | **Institution**: Graphic Era Hill University  
@@ -32,7 +32,7 @@ A highly scalable, ultra-low latency distributed URL shortening platform enginee
 
 ## 🏛️ 2. High-Level Architecture
 
-![Distributed URL Shortener HLD](03_URL_Shortener_HLD.png)
+![URL Shortener HLD](03_URL_Shortener_HLD.png)
 
 <details>
 <summary><b>View Architecture Source (Mermaid)</b></summary>

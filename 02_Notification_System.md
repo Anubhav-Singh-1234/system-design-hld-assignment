@@ -1,4 +1,4 @@
-# 🔔 Question 2: Distributed Notification System
+# 🔔 Question 2: Notification System
 
 **Subject**: System Design | **Subject Code**: TCS-504  
 **Author**: Anubhav Singh | **Institution**: Graphic Era Hill University  
@@ -35,7 +35,7 @@ A highly available, resilient, multi-channel notification engine capable of hand
 
 ## 🏛️ 2. High-Level Architecture
 
-![Distributed Notification System HLD](02_Notification_System_HLD.png)
+![Notification System HLD](02_Notification_System_HLD.png)
 
 <details>
 <summary><b>View Architecture Source (Mermaid)</b></summary>
