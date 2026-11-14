@@ -32,6 +32,10 @@ A highly scalable, ultra-low latency distributed URL shortening platform enginee
 
 ## 🏛️ 2. High-Level Architecture
 
+![Distributed URL Shortener HLD](03_URL_Shortener_HLD.png)
+
+<details>
+<summary><b>View Architecture Source (Mermaid)</b></summary>
 
 ```mermaid
 graph TD
@@ -82,6 +86,7 @@ graph TD
     STREAM --> AGGREGATOR
     AGGREGATOR --> ANALYTICS_DB
 ```
+</details>
 
 ---
 

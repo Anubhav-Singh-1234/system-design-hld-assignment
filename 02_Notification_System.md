@@ -35,6 +35,10 @@ A highly available, resilient, multi-channel notification engine capable of hand
 
 ## 🏛️ 2. High-Level Architecture
 
+![Distributed Notification System HLD](02_Notification_System_HLD.png)
+
+<details>
+<summary><b>View Architecture Source (Mermaid)</b></summary>
 
 ```mermaid
 graph TD
@@ -116,6 +120,7 @@ graph TD
     W_SMS --> HIST_DB
     W_EMAIL --> HIST_DB
 ```
+</details>
 
 ---
 

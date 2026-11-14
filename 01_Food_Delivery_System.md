@@ -32,6 +32,10 @@ A production-grade High-Level Design (HLD) for a hyperlocal food delivery platfo
 
 ## 🏛️ 2. High-Level Architecture
 
+![Food Delivery System HLD](01_Food_Delivery_HLD.png)
+
+<details>
+<summary><b>View Architecture Source (Mermaid)</b></summary>
 
 ```mermaid
 graph TD
@@ -100,6 +104,7 @@ graph TD
     WS_GW --> TRACK_FEED
     NOTIF --> TRACK_FEED
 ```
+</details>
 
 ---
 
