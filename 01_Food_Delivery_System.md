@@ -36,28 +36,27 @@ A production-grade High-Level Design (HLD) for a hyperlocal food delivery platfo
 ```mermaid
 graph TD
     subgraph Clients["Clients Layer"]
-        C_APP[Customer Mobile App / Web]
-        D_APP[Delivery Driver App]
-        R_APP[Restaurant Partner Dashboard]
+        C_APP["Customer Mobile App / Web"]
+        D_APP["Delivery Driver App"]
+        R_APP["Restaurant Partner Dashboard"]
     end
 
-    LB[Global Cloud Load Balancer / Route53 DNS]
+    LB["Global Cloud Load Balancer / Route53 DNS"]
     C_APP --> LB
     D_APP --> LB
     R_APP --> LB
 
-    GW[API Gateway & Reverse Proxy\nJWT Validation / Rate Limiting / SSL Termination]
+    GW["API Gateway & Reverse Proxy<br/>Authentication / Rate Limiting / SSL Termination"]
     LB --> GW
 
-    subgraph Core_Services["Microservices Ecosystem"]
-        AUTH[Auth & User Service]
-        CATALOG[Restaurant & Menu Catalog Service]
-        CART[Cart Service]
-        ORDER[Order Management Service]
-        PAY[Payment Service]
-        DISPATCH[Delivery & Dispatch Engine]
-        LOC[Location & Tracking Service]
-        NOTIF[Notification Service]
+    subgraph Core_Services["Core Microservices Ecosystem"]
+        AUTH["Auth & User Profile Service"]
+        CATALOG["Restaurant & Menu Catalog Service"]
+        CART["Cart & Pricing Service"]
+        ORDER["Order Processing Service"]
+        PAY["Payment & Billing Service"]
+        DISPATCH["Driver Matching & Dispatch Engine"]
+        LOC["Driver Location Tracking Service"]
     end
 
     GW --> AUTH
@@ -68,33 +67,38 @@ graph TD
     GW --> DISPATCH
     GW --> LOC
 
-    subgraph Caches_Databases["Storage Layer"]
-        U_DB[(User DB\nPostgreSQL)]
-        CAT_DB[(Catalog DB\nMongoDB)]
-        CAT_CACHE[(Menu Cache\nRedis)]
-        ORD_DB[(Order DB\nPostgreSQL)]
-        GEO_CACHE[(Driver Spatial Index\nRedis GEO)]
-        KAFKA{{Message Broker\nApache Kafka}}
+    subgraph Messaging_Realtime["Event Streaming & Real-Time Gateway"]
+        KAFKA{{"Apache Kafka Message Broker<br/>Event Bus (Order, Payment, Dispatch Events)"}}
+        WS_GW["WebSocket Gateway Cluster<br/>Persistent Bidirectional Connections"]
+        NOTIF["Notification Service<br/>Push Notifications & SMS"]
     end
-
-    AUTH --> U_DB
-    CATALOG --> CAT_DB
-    CATALOG --> CAT_CACHE
-    ORDER --> ORD_DB
-    LOC --> GEO_CACHE
 
     ORDER --> KAFKA
     PAY --> KAFKA
     DISPATCH --> KAFKA
     KAFKA --> NOTIF
+    LOC --> WS_GW
+    LOC --> GEO_CACHE
 
-    subgraph RealTime_Mesh["Real-Time Gateway"]
-        WS[WebSocket Gateway Cluster]
+    subgraph Data_Tier["Distributed Storage & Cache Tier"]
+        USER_DB[("User & Profile DB<br/>PostgreSQL")]
+        CAT_DB[("Catalog DB<br/>MongoDB")]
+        MENU_CACHE[("Menu & Active Orders Cache<br/>Redis")]
+        ORDER_DB[("Order DB<br/>PostgreSQL ACID")]
+        GEO_CACHE[("Driver Spatial Index<br/>Redis GEO (H3 / Geohash)")]
     end
 
-    D_APP -.->|GPS Ping every 3s| LOC
-    LOC --> WS
-    WS -.->|Live Coordinates Push| C_APP
+    AUTH --> USER_DB
+    CATALOG --> CAT_DB
+    CATALOG --> MENU_CACHE
+    ORDER --> ORDER_DB
+
+    subgraph Live_Streams["Live Tracking Outbound"]
+        TRACK_FEED["Real-Time Order & Driver Tracking Feed<br/>(Pushed to Customer & Driver Apps)"]
+    end
+
+    WS_GW --> TRACK_FEED
+    NOTIF --> TRACK_FEED
 ```
 
 ---

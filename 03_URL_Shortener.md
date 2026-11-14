@@ -35,50 +35,52 @@ A highly scalable, ultra-low latency distributed URL shortening platform enginee
 
 ```mermaid
 graph TD
-    subgraph Clients["Users"]
-        U_CREATOR[URL Creator / API Client]
-        U_CLICKER[End-User Clicking Short Link]
+    subgraph Clients["Users & Clients"]
+        CREATOR["URL Creator / API Client<br/>(Write Traffic)"]
+        CLICKER["End-User / Web Browser<br/>(Read Traffic)"]
     end
 
-    LB[Global Cloud Load Balancer / Anycast DNS]
-    U_CREATOR --> LB
-    U_CLICKER --> LB
+    LB["Global Anycast DNS & Cloud Load Balancer"]
+    CREATOR --> LB
+    CLICKER --> LB
 
-    GW[API Gateway & Rate Limiter]
+    GW["API Gateway & Rate Limiter<br/>SSL Termination, WAF & Routing"]
     LB --> GW
 
-    subgraph Services["Application Services"]
-        WRITE_SVC[URL Shortener Service\nWrite Path]
-        READ_SVC[Redirection Service\nRead Path]
-        KGS[Dedicated Key Generation Service\nPre-generates Base62 Tokens]
+    subgraph Core_Services["Core Application Services"]
+        WRITE_SVC["URL Shortener Service<br/>(Write Path - Low Volume)"]
+        READ_SVC["High-Performance Redirection Service<br/>(Read Path - High Volume)"]
+        KGS["Key Generation Service (KGS)<br/>Pre-generates Unique Base62 Tokens"]
     end
 
-    GW -->|POST /api/v1/shorten| WRITE_SVC
-    GW -->|GET /{short_key}| READ_SVC
-    WRITE_SVC <-->|Fetch Pre-generated Token| KGS
+    GW -->|"POST /api/v1/shorten"| WRITE_SVC
+    GW -->|"GET /:short_key"| READ_SVC
+    WRITE_SVC -->|"Fetch Token Buffer"| KGS
 
-    subgraph Caching_Storage["Data Tier"]
-        CACHE[(Redis In-Memory Cache\nLRU Eviction)]
-        DB[(URL Database\nPostgreSQL / MongoDB / DynamoDB)]
+    subgraph Storage_Caching["Caching & Persistence Tier"]
+        CACHE[("Redis In-Memory Distributed Cache<br/>LRU Eviction / High Hit-Ratio")]
+        URL_DB[("URL Relational Database<br/>PostgreSQL / CockroachDB (Partitioned)")]
+        KGS_DB[("KGS Token Store<br/>MySQL / Range Key Allocator")]
     end
 
-    WRITE_SVC --> DB
-    WRITE_SVC --> CACHE
+    WRITE_SVC -->|"Persist New URL Mapping"| URL_DB
+    WRITE_SVC -->|"Pre-warm Cache"| CACHE
+    KGS -->|"Allocate Token Ranges"| KGS_DB
 
-    READ_SVC -->|1. Check Cache| CACHE
-    CACHE -.->|Cache Miss| READ_SVC
-    READ_SVC -->|2. Query DB on Miss| DB
-    READ_SVC -.->|3. Write-Back to Cache| CACHE
+    READ_SVC -->|"1. Cache Lookup"| CACHE
+    CACHE -.->|"Cache Miss"| READ_SVC
+    READ_SVC -->|"2. Query Primary DB on Miss"| URL_DB
+    READ_SVC -.->|"3. Write Back to Cache"| CACHE
 
-    subgraph Analytics["Asynchronous Analytics Stream"]
-        STREAM{{Kafka / Redis Stream\nClick Events}}
-        ANALYTICS_WORKER[Analytics Aggregator Worker]
-        ANALYTICS_DB[(Analytics Columnar DB\nClickHouse / TimescaleDB)]
+    subgraph Analytics_Stream["Asynchronous Click Analytics Engine"]
+        STREAM{{"Kafka / Redis Stream<br/>Non-blocking Click Event Stream"}}
+        AGGREGATOR["Analytics Aggregation Workers"]
+        ANALYTICS_DB[("Click Analytics Columnar DB<br/>ClickHouse / TimescaleDB")]
     end
 
-    READ_SVC -->|Emit Click Event Async| STREAM
-    STREAM --> ANALYTICS_WORKER
-    ANALYTICS_WORKER --> ANALYTICS_DB
+    READ_SVC -->|"Emit Click Event (Async)"| STREAM
+    STREAM --> AGGREGATOR
+    AGGREGATOR --> ANALYTICS_DB
 ```
 
 ---

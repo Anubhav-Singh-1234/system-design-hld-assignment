@@ -38,42 +38,42 @@ A highly available, resilient, multi-channel notification engine capable of hand
 
 ```mermaid
 graph TD
-    subgraph Producers["Event Sources"]
-        ORDER_SVC[Order Service]
-        AUTH_SVC[Auth Service / OTP]
-        MARKETING_SVC[Marketing Campaign Service]
+    subgraph Producers["Event Producers & Sources"]
+        ORDER_SVC["Order Management Service"]
+        AUTH_SVC["Auth Service / OTP Generator"]
+        MARKETING_SVC["Marketing & Campaign Engine"]
     end
 
-    GW[Notification Ingestion Gateway]
-    ORDER_SVC -->|gRPC / REST| GW
-    AUTH_SVC -->|gRPC / REST| GW
-    MARKETING_SVC -->|gRPC / REST| GW
+    GW["Notification Ingestion Gateway<br/>Validation, Authorization & Ingestion API"]
+    ORDER_SVC -->|"gRPC / REST"| GW
+    AUTH_SVC -->|"gRPC / REST"| GW
+    MARKETING_SVC -->|"gRPC / REST"| GW
 
-    subgraph Ingestion_Pipeline["Ingestion & Policy Engine"]
-        RATE[Rate Limiter]
-        DEDUP[Deduplication Filter\nRedis TTL Keys]
-        PREF[User Preference & Quiet Hours Engine]
+    subgraph Ingestion_Pipeline["Policy Engine & Deduplication"]
+        RATE["Token Bucket Rate Limiter"]
+        DEDUP["Deduplication Filter<br/>Redis TTL Sliding Window"]
+        PREF_FILTER["User Preferences & Quiet Hours Filter"]
     end
 
     GW --> RATE
     RATE --> DEDUP
-    DEDUP --> PREF
+    DEDUP --> PREF_FILTER
 
-    subgraph Priority_Queues["Priority Queues (Kafka / RabbitMQ)"]
-        Q_HIGH[High Priority Queue\nOTPs, Order Status]
-        Q_MED[Medium Priority Queue\nReminders, Account Updates]
-        Q_LOW[Low Priority Queue\nPromotions, Newsletters]
+    subgraph Priority_Queues["Multi-Tier Priority Message Queues (Kafka)"]
+        Q_HIGH["High-Priority Queue<br/>Transactional OTPs & Critical Alerts"]
+        Q_MED["Medium-Priority Queue<br/>Order Tracking & Account Updates"]
+        Q_LOW["Low-Priority Queue<br/>Promotions & Newsletters"]
     end
 
-    PREF -->|Priority Routing| Q_HIGH
-    PREF -->|Priority Routing| Q_MED
-    PREF -->|Priority Routing| Q_LOW
+    PREF_FILTER -->|"High Priority"| Q_HIGH
+    PREF_FILTER -->|"Medium Priority"| Q_MED
+    PREF_FILTER -->|"Low Priority"| Q_LOW
 
-    subgraph Workers["Dispatcher Workers & Template Engine"]
-        TPL[Template Engine\nVariable Interpolation]
-        W_PUSH[Push Workers]
-        W_SMS[SMS Workers]
-        W_EMAIL[Email Workers]
+    subgraph Workers["Template Engine & Channel Workers"]
+        TPL["Template Rendering Engine<br/>Localization & Variable Substitution"]
+        W_PUSH["Push Notification Workers"]
+        W_SMS["SMS Dispatch Workers"]
+        W_EMAIL["Email Dispatch Workers"]
     end
 
     Q_HIGH --> TPL
@@ -84,10 +84,10 @@ graph TD
     TPL --> W_SMS
     TPL --> W_EMAIL
 
-    subgraph ThirdParty["Delivery Gateways"]
-        FCM[Firebase FCM / Apple APNs]
-        TWILIO[Twilio / AWS SNS]
-        SENDGRID[SendGrid / AWS SES]
+    subgraph ThirdParty["External Delivery Providers"]
+        FCM["Push Providers: Firebase FCM / Apple APNs"]
+        TWILIO["SMS Providers: Twilio / AWS SNS / Sinch"]
+        SENDGRID["Email Providers: SendGrid / AWS SES / Mailgun"]
     end
 
     W_PUSH --> FCM
@@ -95,29 +95,26 @@ graph TD
     W_EMAIL --> SENDGRID
 
     subgraph Reliability["Resilience & Fault Handling"]
-        RETRY[Retry Engine\nExponential Backoff + Jitter]
-        DLQ[Dead Letter Queue\n(DLQ)]
-        ALERT[Ops Dashboard / PagerDuty Alert]
+        RETRY["Retry Engine<br/>Exponential Backoff + Jitter"]
+        DLQ["Dead Letter Queue (DLQ)<br/>Poison Pill Quarantine"]
+        ALERT["Ops Alerting & PagerDuty Integration"]
     end
 
-    W_PUSH -.->|On Failure| RETRY
-    W_SMS -.->|On Failure| RETRY
-    W_EMAIL -.->|On Failure| RETRY
-    RETRY -->|Max Retries Exceeded| DLQ
+    W_PUSH -.->|"On 5xx Failure"| RETRY
+    W_SMS -.->|"On 5xx Failure"| RETRY
+    W_EMAIL -.->|"On 5xx Failure"| RETRY
+    RETRY -->|"Max Retries Exceeded"| DLQ
     DLQ --> ALERT
 
-    subgraph Storage["Databases"]
-        HIST_DB[(Notification History DB\nCassandra / DynamoDB)]
-        PREF_DB[(User Preferences DB\nPostgreSQL)]
+    subgraph Persistence["Storage & Audit Tier"]
+        HIST_DB[("Notification History & Audit Log<br/>Apache Cassandra / DynamoDB")]
+        PREF_DB[("User Notification Preferences DB<br/>PostgreSQL")]
     end
 
-    PREF -.-> PREF_DB
+    PREF_FILTER -.-> PREF_DB
     W_PUSH --> HIST_DB
     W_SMS --> HIST_DB
     W_EMAIL --> HIST_DB
-    FCM -.->|Webhooks| HIST_DB
-    TWILIO -.->|Webhooks| HIST_DB
-    SENDGRID -.->|Webhooks| HIST_DB
 ```
 
 ---
